@@ -225,8 +225,8 @@ Proof. reflexivity. Qed.
 Lemma t_apply_empty : forall (A : Type) (x : string) (v : A),
   (_ !-> v) x = v.
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  intros A x v. reflexivity.
+Qed.
 
 (** **** Exercise: 2 stars, standard, optional (t_update_eq)
 
@@ -237,8 +237,10 @@ Proof.
 Lemma t_update_eq : forall (A : Type) (m : total_map A) x v,
   (x !-> v ; m) x = v.
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  intros A m x v. unfold t_update. 
+  rewrite <- eqb_string_refl.
+  reflexivity.
+Qed.
 
 (** **** Exercise: 2 stars, standard, optional (t_update_neq)
 
@@ -250,8 +252,12 @@ Theorem t_update_neq : forall (A : Type) (m : total_map A) x1 x2 v,
   x1 <> x2 ->
   (x1 !-> v ; m) x2 = m x2.
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  intros A m x1 x2 v x1_ne_x2.
+  unfold t_update.
+  apply eqb_string_false_iff in x1_ne_x2.
+  rewrite x1_ne_x2.
+  reflexivity.
+Qed.
 
 (** **** Exercise: 2 stars, standard, optional (t_update_shadow)
 
@@ -264,8 +270,12 @@ Proof.
 Lemma t_update_shadow : forall (A : Type) (m : total_map A) x v1 v2,
   (x !-> v2 ; x !-> v1 ; m) = (x !-> v2 ; m).
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  intros A m x v1 v2.
+  unfold t_update.
+  extensionality y.
+  destruct (eqb_string x y).
+  all: reflexivity.
+Qed.
 
 (** For the final two lemmas about total maps, it's convenient to use
     the reflection idioms introduced in chapter [IndProp].  We begin
@@ -280,8 +290,11 @@ Proof.
 Lemma eqb_stringP : forall x y : string,
   reflect (x = y) (eqb_string x y).
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  intros x y.
+  apply iff_reflect.
+  symmetry.
+  apply eqb_string_true_iff.
+Qed.
 
 (** Now, given [string]s [x1] and [x2], we can use the tactic
     [destruct (eqb_stringP x1 x2)] to simultaneously perform case
@@ -299,8 +312,12 @@ Proof.
 Theorem t_update_same : forall (A : Type) (m : total_map A) x,
   (x !-> m x ; m) = m.
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  intros A m x.
+  extensionality y.
+  unfold t_update.
+  destruct (eqb_stringP x y).
+  rewrite e. all: reflexivity.
+Qed.
 
 (** **** Exercise: 3 stars, standard, especially useful (t_update_permute)
 
@@ -315,8 +332,21 @@ Theorem t_update_permute : forall (A : Type) (m : total_map A)
   =
   (x2 !-> v2 ; x1 !-> v1 ; m).
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  intros A m v1 v2 x1 x2 x2_ne_x1.
+  extensionality y.
+  unfold t_update.
+
+  (* Most cases can simply be solved after comparing with x1 and x2. *)
+  destruct (eqb_stringP x1 y).
+  all: (destruct (eqb_stringP x2 y); try reflexivity).
+
+  (* The case x1 = x2 = y is a contradiction and needs special proff. *)
+  rewrite e, e0 in x2_ne_x1.
+  assert (y = y). reflexivity.
+  apply x2_ne_x1 in H.
+  contradiction.
+Qed.
+
 
 (* ################################################################# *)
 (** * Partial maps *)
