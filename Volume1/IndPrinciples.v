@@ -72,8 +72,10 @@ Proof.
 Theorem plus_one_r' : forall n:nat,
   n + 1 = S n.
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  apply nat_ind.
+  - reflexivity.
+  - simpl. intros n IHn. rewrite IHn. reflexivity.
+Qed.
 
 (** Coq generates induction principles for every datatype
     defined with [Inductive], including those that aren't recursive.
@@ -119,7 +121,12 @@ Inductive rgb : Type :=
   | red
   | green
   | blue.
-Check rgb_ind.
+Check rgb_ind :
+  forall P : rgb -> Prop,
+    P red ->
+    P green ->
+    P blue ->
+    forall c : rgb, P c.
 (** [] *)
 
 (** Here's another example, this time with one of the constructors
@@ -181,8 +188,14 @@ Inductive booltree : Type :=
   | bt_leaf (b : bool)
   | bt_branch (b : bool) (t1 t2 : booltree).
 
-(* FILL IN HERE:
-   ... *)
+Check booltree_ind :
+  forall P : booltree -> Prop,
+    P bt_empty ->
+    (forall b : bool, P (bt_leaf b)) ->
+    (forall (b : bool) (t1 : booltree), P t1 ->
+      forall (t2 : booltree), P t2 ->
+      P (bt_branch b t1 t2)) ->
+    forall t : booltree, P t.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_booltree_ind : option (nat*string) := None.
@@ -201,8 +214,16 @@ Definition manual_grade_for_booltree_ind : option (nat*string) := None.
     principle Coq generates is that given above: *)
 
 Inductive Toy : Type :=
-  (* FILL IN HERE *)
+  | con1 (b : bool)
+  | con2 (n : nat) (t : Toy)
 .
+
+Check Toy_ind :
+  forall P : Toy -> Prop,
+    (forall b : bool, P (con1 b)) ->
+    (forall (n : nat) (t : Toy), P t -> P (con2 n t)) ->
+    forall t : Toy, P t.
+
 (* Do not modify the following line: *)
 Definition manual_grade_for_toy_ind : option (nat*string) := None.
 (** [] *)
@@ -247,7 +268,13 @@ Definition manual_grade_for_toy_ind : option (nat*string) := None.
 Inductive tree (X:Type) : Type :=
   | leaf (x : X)
   | node (t1 t2 : tree X).
-Check tree_ind.
+Check tree_ind :
+  forall (X : Type) (P : tree X -> Prop),
+    (forall (x : X), P (leaf X x)) ->
+    (forall (t1 : tree X), P t1 ->
+      forall (t2 : tree X), P t2 ->
+      P (node X t1 t2)) ->
+    forall (t : tree X), P t.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (mytype)
