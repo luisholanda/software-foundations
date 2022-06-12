@@ -1,4 +1,4 @@
-From LF.Volume1 Require Export Poly.
+From LF Require Export Poly.
 
 (* Exercise: 2 stars, standard, optional (silly_ex)
 

@@ -1,4 +1,4 @@
-From LF.Volume1 Require Export Induction.
+From LF Require Export Induction.
 Module NatList.
     Inductive natprod : Type :=
         | pair (n1 n2 : nat).

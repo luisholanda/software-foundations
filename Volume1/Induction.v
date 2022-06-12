@@ -1,4 +1,4 @@
-From LF.Volume1 Require Export Basics.
+From LF Require Export Basics.
 
 Theorem add_0_r: forall n : nat,
     n + 0 = n.

@@ -1,5 +1,5 @@
 Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
-From LF.Volume1 Require Export Tactics.
+From LF Require Export Tactics.
 
 (* Exercise: 2 stars, standard (and_exercise) *)
 
