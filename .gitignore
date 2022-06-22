@@ -46,3 +46,6 @@ time-of-build-pretty.log
 
 *.ml
 *.mli
+
+_CoqProject
+MakefileCoq*

@@ -15,9 +15,6 @@
 
         packages = with pkgs; [
           coq
-          (vscode-with-extensions.override {
-            vscode = vscodium;
-          })
         ];
       };
     });
