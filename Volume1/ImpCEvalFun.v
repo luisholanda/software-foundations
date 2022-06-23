@@ -207,16 +207,19 @@ Proof. reflexivity. Qed.
    [X] (inclusive: [1 + 2 + ... + X]) in the variable [Y].  Make sure
    your solution satisfies the test that follows. *)
 
-Definition pup_to_n : com
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition pup_to_n : com :=
+  <{
+    Y := 0;
+    while ~(X = 0) do
+      Y := (Y + X);
+      X := (X - 1)
+    end
+  }>.
 
 Example pup_to_n_1 :
   test_ceval (X !-> 5) pup_to_n
   = Some (0, 15, 0).
-(* FILL IN HERE *) Admitted.
-(* 
 Proof. reflexivity. Qed.
-*)
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (peven)
@@ -360,7 +363,64 @@ Theorem ceval__ceval_step: forall c st st',
 Proof.
   intros c st st' Hce.
   induction Hce.
-  (* FILL IN HERE *) Admitted.
+  (* skip *)
+  exists 1. reflexivity.
+  (* assign *)
+  exists 1. simpl. rewrite H. reflexivity.
+  (* step *)
+  destruct IHHce1 as [i1 Hc1__eval].
+  destruct IHHce2 as [i2 Hc2__eval].
+  exists (S (i1 + i2)).
+  simpl.
+  apply (ceval_step_more i1
+                         (i1 + i2)
+                         st
+                         st'
+                         c1
+                         (le_plus_l i1 i2))
+        in Hc1__eval.
+  apply (ceval_step_more i2
+                         (i1 + i2)
+                         st'
+                         st''
+                         c2
+                         (le_plus_r i1 i2))
+        in Hc2__eval.
+  rewrite Hc1__eval.
+  assumption.
+  (* if then else - then branch *)
+  destruct IHHce as [i Hc1__eval].
+  exists (S i). simpl.
+  rewrite H. assumption.
+  (* if then else - else branch *)
+  destruct IHHce as [i Hc2__eval].
+  exists (S i). simpl.
+  rewrite H. assumption.
+  (* while stop *)
+  exists 1. simpl. rewrite H. reflexivity.
+  (* while continue *)
+  destruct IHHce1 as [i1 Hc__eval].
+  destruct IHHce2 as [i2 Hwhile__eval].
+  exists (S (i1 + i2)).
+  simpl.
+  apply (ceval_step_more i1
+                         (i1 + i2)
+                         st
+                         st'
+                         c
+                         (le_plus_l i1 i2))
+        in Hc__eval.
+  apply (ceval_step_more i2
+                         (i1 + i2)
+                         st'
+                         st''
+                         <{ while b do c end }>
+                         (le_plus_r i1 i2))
+        in Hwhile__eval.
+  rewrite H, Hc__eval.
+  assumption.
+Qed.
+
 (** [] *)
 
 Theorem ceval_and_ceval_step_coincide: forall c st st',
