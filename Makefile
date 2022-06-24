@@ -1,6 +1,17 @@
 COQ_MAKEFILE := "MakefileCoq.mk"
 
-COQ_FILES := $(wildcard **/*.v)
+INCLUDE_LF := 1
+INCLUDE_VFA := 1
+
+COQ_FILES :=
+
+ifeq ($(INCLUDE_LF),1)
+	COQ_FILES += $(wildcard Volume1/*.v)
+endif
+
+ifeq ($(INCLUDE_VFA),1)
+	COQ_FILES += $(wildcard Volume3/*.v)
+endif
 
 all: $(COQ_MAKFILE)
 	$(MAKE) -f $(COQ_MAKEFILE) all
@@ -15,6 +26,7 @@ $(COQ_MAKEFILE): _CoqProject
 
 _CoqProject:
 	@echo "-Q Volume1 LF" > $@
+	@echo "-Q Volume3 VFA" >> $@
 	@echo "" >> $@
 	@echo $(COQ_FILES) >> $@
 
