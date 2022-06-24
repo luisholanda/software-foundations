@@ -146,7 +146,21 @@ Lemma insert_sorted:
   forall a l, sorted l -> sorted (insert a l).
 Proof.
   intros a l S. induction S; simpl.
-  (* FILL IN HERE *) Admitted.
+  (* nil *) constructor.
+  (* single *) bdestruct (x >=? a). auto. constructor. lia. constructor.
+  (* cons *)
+  inv IHS; bdestruct (x >=? a);
+  (* cases a :: x :: y :: l *)
+  try apply (sorted_cons a x (y :: l) H0 (sorted_cons x y l H S));
+  bdestruct (y >=? a);
+  try apply sorted_1;
+  try discriminate.
+  induction l. simpl in H1. discriminate.
+  inv H1. apply (sorted_cons x y [] H (sorted_1 y)).
+  (* cases a :: x :: y :: l *)
+  all: try apply (sorted_cons a x (y :: l) H3 (sorted_cons x y l H S));
+  inv H0; repeat (constructor; try lia; try assumption).
+Qed.
 
 (** [] *)
 
@@ -157,8 +171,10 @@ Proof.
 
 Theorem sort_sorted: forall l, sorted (sort l).
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  intros. induction l; simpl.
+  (* l = [] *) constructor.
+  (* l = a :: l *) apply (insert_sorted a (sort l) IHl).
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (insert_perm) *)
@@ -167,9 +183,20 @@ Proof.
     advantage of helpful theorems from the [Permutation] library. *)
 
 Lemma insert_perm: forall x l,
-    Permutation (x :: l) (insert x l).
+  Permutation (x :: l) (insert x l).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction l; simpl.
+  (* l = [] *) apply Permutation_refl.
+  (* l = x :: l *) bdestruct (a >=? x).
+  - (* x <= a *) apply Permutation_refl.
+  - (* x >  a*)
+    assert (Permutation (x :: a :: l) (a :: x :: l)) by constructor.
+    Search Permutation.
+    apply Permutation_trans with (l' := (a :: x :: l));
+    try constructor.
+    assumption.
+Qed.
+
 
 (** [] *)
 
@@ -179,7 +206,14 @@ Proof.
 
 Theorem sort_perm: forall l, Permutation l (sort l).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intro. induction l; simpl.
+  (* l = [] *) constructor.
+  (* l = a :: l *)
+  apply perm_skip with (x := a) in IHl as H.
+  apply Permutation_trans with (l' := (a :: sort l)).
+  assumption.
+  apply insert_perm.
+Qed.
 
 (** [] *)
 
@@ -188,9 +222,10 @@ Proof.
 (** Finish the proof of correctness! *)
 
 Theorem insertion_sort_correct:
-    is_a_sorting_algorithm sort.
+  is_a_sorting_algorithm sort.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  split. apply sort_perm. apply sort_sorted.
+Qed.
 
 (** [] *)
 
@@ -214,7 +249,19 @@ Lemma sorted_sorted': forall al, sorted al -> sorted' al.
     have to think about how to approach it, and try out one or two
     different ideas.*)
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros.
+  induction H as [|x| x y l Hxy _];
+  unfold sorted'; intros.
+  - (* nil *)
+    destruct i; simpl in H0; discriminate.
+  - (* [x] *)
+    destruct j; simpl in H1; inv H1.
+    (* j = 0 *)
+    lia.
+    (* j = S j - contradiction *)
+    destruct j; inv H3.
+  - (* x :: y :: l *)
+
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (sorted'_sorted) *)
