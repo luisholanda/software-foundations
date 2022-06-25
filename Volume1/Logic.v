@@ -219,26 +219,19 @@ Qed.
 Theorem In_map_iff: forall (A B : Type) (f : A -> B) (l : list A) (y : B),
     In y (map f l) <-> exists x, f x = y /\ In x l.
 Proof.
-    intros A B f l y. split.
-    - (* ->  *)
-        induction l as [|h t IHl].
-        + simpl. intros H. destruct H.
-        + simpl. intros [hFhy | hInymapft].
-            * exists h. split.
-                -- apply hFhy.
-                -- simpl. left. apply eq_refl.
-            * (* In y (map f t) *) 
-                apply IHl in hInymapft. 
-                destruct hInymapft as [x [hFxy hInxt]].
-                exists x. split.
-                    -- apply hFxy.
-                    -- right. apply hInxt.
-    - (* <- *)
-        induction l as [|h t IHl].
-        + simpl. intros [x [_ contra]]. destruct contra.
-        + simpl. intros [x [hFxy [hhx | hInxt]]].
-            * left. rewrite hhx. apply hFxy.
-            * right. apply IHl. exists x. split. apply hFxy. apply hInxt.
+    intros A B f l y. split; intros.
+    - induction l as [|h t IHl].
+      + contradiction.
+      + simpl. destruct H as [hFhy | hInymapft].
+          * exists h. split; auto.
+          * (* In y (map f t) *)
+            apply IHl in hInymapft.
+            destruct hInymapft as [x [hFxy hInxt]].
+            exists x. split; auto.
+    - destruct H as [x [ ]].
+      subst.
+      apply In_map.
+      assumption.
 Qed.
 
 (*  Exercise: 2 stars, standard (In_app_iff) *)
