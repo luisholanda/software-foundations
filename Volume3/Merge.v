@@ -162,7 +162,19 @@ Lemma split_perm : forall {X:Type} (l l1 l2: list X),
     split l = (l1,l2) -> Permutation l (l1 ++ l2).
 Proof.
   induction l as [| x | x1 x2 l1' IHl'] using list_ind2; intros.
-(* FILL IN HERE *) Admitted.
+  - (* nil *) inv H. auto.
+  - (* [x] *)
+    inv H. auto.
+  - (* x1 :: x2 :: l1'*)
+    simpl in H.
+    destruct (split l1') eqn:El1.
+    inv H.
+    assert (Hl1__splitperm: Permutation l1' (l ++ l0)) by auto.
+    rewrite <- app_comm_cons.
+    apply perm_skip.
+    apply Permutation_cons_app.
+    assumption.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -463,7 +475,11 @@ Lemma sorted_merge1 : forall x x1 l1 x2 l2,
     sorted (merge (x1::l1) (x2::l2)) ->
     sorted (x :: merge (x1::l1) (x2::l2)).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. induction l1;
+  simpl; simpl in H1;
+  bdestruct (x2 >=? x1);
+  auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, standard (sorted_merge) *)
@@ -474,14 +490,42 @@ Proof.
   (* Hint: This is one unusual case where it is _much_ easier to do induction on 
      [l1] rather than on [sorted l1]. You will also need to do
      nested inductions on [l2]. *)
-  (* FILL IN HERE *) Admitted.
+  intro.
+  induction l1;
+  intros;
+  induction l2;
+  auto.
+  (* l1 = a :: l1, l2 = a0 :: l2 *)
+  assert (Hl1__sorted: sorted l1) by (inv H; auto).
+  assert (Hl2__sorted: sorted l2) by (inv H0; auto).
+  apply (IHl1 Hl1__sorted l2) in Hl2__sorted as Hmerge__sorted.
+  apply IHl2 in Hl2__sorted as Hamerge__sorted.
+  simpl.
+  bdestruct (a0 >=? a).
+  - (* a0 >= a *)
+    assert (H2: sorted (merge l1 (a0 :: l2)))
+      by apply (IHl1 Hl1__sorted (a0 :: l2) H0).
+    destruct l1.
+    + simpl. auto.
+    + apply sorted_merge1; inv H; assumption.
+  - (* a0 < a *)
+    destruct l2.
+    + constructor. lia. assumption.
+    + simpl in Hamerge__sorted.
+      bdestruct (n >=? a);
+      constructor;
+      (lia || inv H0);
+      assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (mergesort_sorts) *)
 Lemma mergesort_sorts: forall l, sorted (mergesort l).
 Proof. 
-  apply mergesort_ind; intros. (* Note that we use the special induction principle. *)
-(* FILL IN HERE *) Admitted.
+  apply mergesort_ind; intros; (* Note that we use the special induction principle. *)
+  auto. subst.
+  apply sorted_merge; assumption.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -501,14 +545,45 @@ Proof.
 Lemma merge_perm: forall (l1 l2: list nat),
     Permutation (l1 ++ l2) (merge l1 l2).
 Proof. 
-  (* Hint: A nested induction on [l2] is required. *)
-  (* FILL IN HERE *) Admitted.
+  induction l1.
+  - destruct l2; reflexivity.
+  - simpl. induction l2.
+    + rewrite app_nil_r. reflexivity.
+    + simpl.
+      destruct (a0 >=? a);
+      rewrite app_comm_cons.
+      * apply perm_skip.
+        auto.
+      * apply perm_skip with (x := a0) in IHl2 as H3.
+        apply Permutation_sym.
+        transitivity (a0 :: merge (a :: l1) l2); auto.
+        assert (Permutation (a :: l1 ++ l2) (merge (a :: l1) l2))
+          by apply IHl2.
+        clear IHl2.
+        assert (Permutation (a0 :: a :: l1 ++ l2) (a0 :: merge (a :: l1) l2))
+          by apply H3.
+        clear H3.
+        assert (Permutation (a0 :: a :: l1 ++ l2) ((a :: l1) ++ a0 :: l2))
+          by apply (Permutation_middle (a :: l1) l2 a0).
+        apply Permutation_sym in H0.
+        transitivity (a0 :: a :: l1 ++ l2);
+        assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (mergesort_perm) *)
 Lemma mergesort_perm: forall l, Permutation l (mergesort l).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply mergesort_ind; intros; auto. subst _x. clear y.
+  assert (Permutation (mergesort l1 ++ mergesort l2)
+                      (merge (mergesort l1) (mergesort l2)))
+    by apply merge_perm.
+  etransitivity; only 2: apply H1. clear H1.
+  apply split_perm in e0.
+  etransitivity. apply e0.
+  apply Permutation_app;
+  assumption.
+Qed.
 (** [] *)
 
 (** Putting it all together: *)

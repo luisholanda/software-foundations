@@ -13,11 +13,16 @@ ifeq ($(INCLUDE_VFA),1)
 	COQ_FILES += $(wildcard Volume3/*.v)
 endif
 
+COQ_MAKE := $(MAKE) -f $(COQ_MAKEFILE)
+
 all: $(COQ_MAKFILE)
-	$(MAKE) -f $(COQ_MAKEFILE) all
+	$(COQ_MAKE) all
+
+fmt: $(COQ_MAKEFILE)
+	$(COQ_MAKE) beautify
 
 clean: $(COQ_MAKEFILE)
-	@$(MAKE) -f $(COQ_MAKEFILE) cleanall
+	@$(COQ_MAKE) cleanall
 	@rm -f $(COQ_MAKEFILE) $(COQ_MAKEFILE).conf
 	@rm -f *.mli *.ml
 
@@ -31,6 +36,6 @@ _CoqProject:
 	@echo $(COQ_FILES) >> $@
 
 %: $(COQ_MAKEFILE)
-	$(MAKE) -f $(COQ_MAKEFILE) $@
+	$(COQ_MAKE) $@
 
 .PHONY: all clean _CoqProject

@@ -39,21 +39,37 @@ Definition bag_eqv (b1 b2: bag) : Prop :=
 
 Lemma bag_eqv_refl : forall b, bag_eqv b b.
 Proof.
-(* FILL IN HERE *) Admitted.
+  unfold bag_eqv. intros. reflexivity.
+Qed.
 
 Lemma bag_eqv_sym: forall b1 b2, bag_eqv b1 b2 -> bag_eqv b2 b1. 
 Proof.
-(* FILL IN HERE *) Admitted.
+  unfold bag_eqv. intros.
+  specialize H with n.
+  symmetry.
+  assumption.
+Qed.
 
-Lemma bag_eqv_trans: forall b1 b2 b3, bag_eqv b1 b2 -> bag_eqv b2 b3 -> bag_eqv b1 b3.
+Lemma bag_eqv_trans: forall b1 b2 b3,
+  bag_eqv b1 b2 -> bag_eqv b2 b3 -> bag_eqv b1 b3.
 Proof.
-(* FILL IN HERE *) Admitted.
+  unfold bag_eqv. intros.
+  specialize H with n.
+  specialize H0 with n.
+  transitivity (count n b2);
+  assumption.
+Qed.
 
 (** The following little lemma is handy in a couple of places. *)
 
-Lemma bag_eqv_cons : forall x b1 b2, bag_eqv b1 b2 -> bag_eqv (x::b1) (x::b2).
+Lemma bag_eqv_cons : forall x b1 b2,
+  bag_eqv b1 b2 -> bag_eqv (x::b1) (x::b2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold bag_eqv. intros.
+  specialize H with n.
+  simpl. rewrite H.
+  reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -75,14 +91,34 @@ Definition is_a_sorting_algorithm' (f: list nat -> list nat) :=
 
 Lemma insert_bag: forall x l, bag_eqv (x::l) (insert x l).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. induction l.
+  (* nil *) simpl. apply bag_eqv_refl.
+  (* l = a :: l *)
+  simpl.
+  bdestruct (a >=? x).
+  (* a >= x *) apply bag_eqv_refl.
+  (* a < x *)
+  assert (H0: bag_eqv (a :: x :: l) (a :: insert x l))
+    by (apply bag_eqv_cons; assumption).
+  apply bag_eqv_trans with (b2 := a :: x :: l).
+  unfold bag_eqv. intro. simpl. lia.
+  assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (sort_bag)
 
     Now prove that sort preserves bag contents. *)
 Theorem sort_bag: forall l, bag_eqv l (sort l).
-(* FILL IN HERE *) Admitted.
+Proof.
+  intro. induction l. unfold bag_eqv. reflexivity.
+  simpl.
+  assert (H1: bag_eqv (a :: (sort l)) (insert a (sort l)))
+    by apply insert_bag.
+  apply bag_eqv_trans with (b2 := a :: (sort l));
+  try apply bag_eqv_cons; assumption.
+Qed.
+
 (** [] *)
 
 (** Now we wrap it all up.  *)
@@ -90,7 +126,7 @@ Theorem sort_bag: forall l, bag_eqv l (sort l).
 Theorem insertion_sort_correct:
   is_a_sorting_algorithm' sort.
 Proof.
-split. apply sort_bag. apply sort_sorted.
+  split. apply sort_bag. apply sort_sorted.
 Qed.
 
 (** **** Exercise: 1 star, standard (permutations_vs_multiset)
@@ -128,7 +164,15 @@ Definition manual_grade_for_permutations_vs_multiset : option (nat*string) := No
 Lemma perm_bag:
   forall al bl : list nat,
    Permutation al bl -> bag_eqv al bl. 
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros. induction H.
+  - (* nil *) apply bag_eqv_refl.
+  - (* skip *) apply bag_eqv_cons. assumption.
+  - (* swap *)
+    unfold bag_eqv. intro. simpl.
+    destruct (y =? n); destruct (x =? n); reflexivity.
+  - (* trans *) apply bag_eqv_trans with (b2 := l'); assumption.
+Qed.
 (** [] *)
 
 (** The other direction,
@@ -140,7 +184,13 @@ Lemma perm_bag:
 (** **** Exercise: 2 stars, advanced (bag_nil_inv) *)
 Lemma bag_nil_inv : forall b, bag_eqv [] b -> b = []. 
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold bag_eqv. intros. induction b.
+  reflexivity.
+  specialize H with a.
+  simpl in H.
+  rewrite Nat.eqb_refl in H.
+  inversion H.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (bag_cons_inv) *)
@@ -150,21 +200,159 @@ Lemma bag_cons_inv : forall l x n,
       l = l1 ++ x :: l2
       /\ count x (l1 ++ l2) = n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction l.
+  - (* nil - contradiction *) inv H.
+  - (* a :: l *)
+    destruct (a =? x) eqn:E; simpl in H.
+    + (* a = x *)
+      rewrite E in H.
+      inv H.
+      exists [], l.
+      apply beq_nat_true in E.
+      subst.
+      auto.
+    + (* a <> x *)
+      rewrite E in H.
+      simpl in H.
+      apply IHl in H as [l1 [l2 [Hl Hc]]].
+      subst.
+      exists (a :: l1), l2.
+      simpl. rewrite E.
+      auto.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 2 stars, advanced (count_insert_other) *)
 Lemma count_insert_other : forall l1 l2 x y,
-    y <> x -> count y (l1 ++ x :: l2) = count y (l1 ++ l2).
+  y <> x -> count y (l1 ++ x :: l2) = count y (l1 ++ l2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. induction l1; intros.
+  - (* l1 = nil *)
+    apply Nat.neq_sym in H.
+    apply Nat.eqb_neq in H.
+    simpl.
+    rewrite H.
+    auto.
+  - (* l1 = a :: l1 *)
+    bdestruct (a =? y).
+    + subst.
+      apply (IHl1 l2 x y) in H.
+      simpl.
+      rewrite Nat.eqb_refl.
+      auto.
+    + apply Nat.eqb_neq in H0.
+      simpl.
+      rewrite H0.
+      simpl.
+      apply (IHl1 l2 x y) in H.
+      assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (bag_perm) *)
 Lemma bag_perm:
   forall al bl, bag_eqv al bl -> Permutation al bl.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intro.
+  induction al.
+  - intros.
+    apply bag_nil_inv in H.
+    subst.
+    constructor.
+  - intros. induction bl as [| b bl].
+    + apply bag_eqv_sym in H.
+      apply bag_nil_inv in H.
+      discriminate.
+    + bdestruct (a =? b).
+      * subst.
+        assert (H0: bag_eqv al bl). {
+          unfold bag_eqv. intro.
+          unfold bag_eqv in H.
+          specialize H with n.
+          simpl in H.
+          bdestruct (b =? n);
+          subst; inv H;
+          reflexivity.
+        }
+        apply IHal in H0.
+        constructor.
+        assumption.
+      * assert (exists l1 l2, al = l1 ++ b :: l2 /\ count b (l1 ++ l2) = count b bl)
+         as [al1 [al2 [Ha Hcb]]].
+       {
+        assert (S (count b bl) = count b al) as Ha. {
+          unfold bag_eqv in H.
+          specialize H with b.
+          simpl in H.
+          rewrite Nat.eqb_refl in H.
+          apply Nat.eqb_neq in H0 as H1.
+          rewrite H1 in H.
+          simpl in H.
+          auto.
+                 }
+        apply bag_cons_inv in Ha.
+        assumption.
+          }
+
+       assert (exists l1 l2, bl = l1 ++ a :: l2 /\ count a (l1 ++ l2) = count a al)
+         as [bl1 [bl2 [Hb Hca]]].
+       {
+        assert (S (count a al) = count a bl) as Hb. {
+          unfold bag_eqv in H.
+          specialize H with a.
+          simpl in H.
+          rewrite Nat.eqb_refl in H.
+          apply Nat.neq_sym in H0.
+          apply Nat.eqb_neq in H0 as H2.
+          rewrite H2 in H.
+          simpl in H.
+          auto.
+        }
+        apply bag_cons_inv in Hb.
+        assumption.
+                    }
+
+       assert (forall n, n <> b -> n <> a -> count n al = count n bl) as Hcab.
+       {
+         unfold bag_eqv in H.
+         intros.
+         specialize H with n.
+         simpl in H.
+         bdestruct (b =? n);
+         bdestruct (a =? n);
+         subst;
+         try contradiction.
+         (* b <> a <> n *)
+         simpl in H.
+         assumption.
+       }
+
+       subst.
+
+       assert (count a (al1 ++ al2) = count a (bl1 ++ bl2)). {
+         apply (count_insert_other al1 al2) in H0.
+         rewrite H0 in Hca.
+         symmetry. assumption.
+       }
+
+       assert (count b (al1 ++ al2) = count b (bl1 ++ bl2)). {
+         apply not_eq_sym in H0.
+         apply (count_insert_other bl1 bl2) in H0.
+         rewrite H0 in Hcb.
+         assumption.
+       }
+
+
+
+       (*
+       do 2 rewrite app_comm_cons.
+       apply Permutation_app.
+       *)
+
+
+
+Admitted.
 (** [] *)
 
 (* ################################################################# *)

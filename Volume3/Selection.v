@@ -151,9 +151,37 @@ Qed.
     the end of [Perm] will be helpful. *)
 
 Lemma select_perm: forall x l y r,
-    (y, r) = select x l -> Permutation (x :: l) (y :: r).
+  (y, r) = select x l -> Permutation (x :: l) (y :: r).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros x l.
+  generalize dependent x.
+  induction l; intros.
+  (* nil *) inv H. auto.
+  (* a :: l *)
+  inv H.
+  assert (Permutation (x :: a :: l) (a :: x :: l)) by constructor.
+  bdestruct (a >=? x).
+  - (* a >= x *)
+    destruct (select x l) eqn:E.
+    apply (Permutation_trans H).
+    inv H1.
+    assert (Permutation (x :: l) (n :: l0)) by auto.
+    assert (Permutation (n :: a :: l0) (a :: n :: l0)) by constructor.
+    apply Permutation_sym.
+    apply (Permutation_trans H2).
+    apply Permutation_sym.
+    auto.
+  - (* a < x *)
+    destruct (select a l) eqn:E.
+    inv H1.
+    assert (Permutation (n :: x :: l0) (x :: n :: l0)) by constructor.
+    apply Permutation_sym.
+    apply (Permutation_trans H1).
+    constructor.
+    apply Permutation_sym.
+    apply IHl.
+    auto.
+Qed.
 
 (** [] *)
 
@@ -165,7 +193,21 @@ Proof.
 Lemma selsort_perm: forall n l,
     length l = n -> Permutation l (selsort l n).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. induction n; intros.
+  (* 0 *) apply length_zero_iff_nil in H. subst. auto.
+  (* S n *)
+  destruct l. auto.
+  simpl in H.
+  simpl.
+  destruct (select n0 l) eqn:E.
+  apply eq_sym in E.
+  apply select_perm in E.
+  apply (Permutation_trans E).
+  constructor.
+  apply IHn.
+  apply Permutation_length in E.
+  inv E. inv H. reflexivity.
+Qed.
 
 (** [] *)
 
@@ -176,7 +218,11 @@ Proof.
 Lemma selection_sort_perm: forall l,
     Permutation l (selection_sort l).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro.
+  unfold selection_sort.
+  apply selsort_perm.
+  reflexivity.
+Qed.
 
 (** [] *)
 
@@ -189,7 +235,13 @@ Proof.
 Lemma select_rest_length : forall x l y r,
     select x l = (y, r) -> length l = length r.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  apply eq_sym in H.
+  apply select_perm in H.
+  apply Permutation_length in H.
+  inv H.
+  reflexivity.
+Qed.
 
 (** [] *)
 
@@ -202,7 +254,22 @@ Lemma select_fst_leq: forall al bl x y,
     select x al = (y, bl) ->
     y <= x.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. induction al; intros.
+  (* nil *) simpl in H. inv H. auto.
+  (* a :: al *)
+  simpl in H.
+  bdestruct (a >=? x).
+  - (* a >= x *)
+    destruct (select x al) eqn:E.
+    apply IHal in E.
+    inv H.
+    assumption.
+  - (* a < x*)
+    destruct (select a al) eqn:E.
+    apply IHal in E.
+    inv H.
+    lia.
+Qed.
 
 (** [] *)
 
@@ -222,7 +289,26 @@ Lemma select_smallest: forall al bl x y,
     select x al = (y, bl) ->
     y <=* bl.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. induction al; intros.
+  (* nil *) simpl in H. inv H. constructor.
+  (* a :: al *)
+  simpl in H.
+  bdestruct (a >=? x).
+  - (* a >= x *)
+    destruct (select x al) eqn:E.
+    apply IHal in E as H1.
+    apply select_fst_leq in E.
+    inv H.
+    assert (y <= a) by lia.
+    constructor; assumption.
+  - (* a < x *)
+    destruct (select a al) eqn:E.
+    apply IHal in E as H1.
+    apply select_fst_leq in E.
+    inv H.
+    assert (y <= x) by lia.
+    constructor; assumption.
+Qed.
 
 (** [] *)
 
@@ -235,7 +321,27 @@ Lemma select_in : forall al bl x y,
     select x al = (y, bl) ->
     In y (x :: al).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. induction al; intros.
+  (* nil *) inv H. constructor. reflexivity.
+  (* a :: al *)
+  apply select_fst_leq in H as H__yleqx.
+  apply select_smallest in H as H__yleallbl.
+  simpl in H.
+  bdestruct (a >=? x).
+  - (* a >= x *)
+    destruct (select x al) eqn:E.
+    inv H.
+    apply IHal in E.
+    apply in_cons with (a := a) in E.
+    assert (Permutation (a :: x :: al) (x :: a :: al)) by constructor.
+    apply (Permutation_in y H E).
+  - (* a < x *)
+    destruct (select a al) eqn:E.
+    inv H.
+    apply IHal in E.
+    apply in_cons with (a := x) in E.
+    assumption.
+Qed.
 
 (** [] *)
 
@@ -251,7 +357,22 @@ Lemma cons_of_small_maintains_sort: forall bl y n,
     sorted (selsort bl n) ->
     sorted (y :: selsort bl n).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. induction bl; intros; subst.
+  (* nil *) auto.
+  (* a :: bl *)
+  simpl. simpl in H1.
+  destruct (select a bl) eqn:E.
+  apply select_smallest in E as H2.
+  apply select_in in E as H3.
+  assert (y <= n). {
+    unfold le_all in H0.
+    rewrite Forall_forall in H0.
+    specialize H0 with n.
+    apply H0 in H3.
+    assumption.
+  }
+  auto.
+Qed.
 
 (** [] *)
 
@@ -264,7 +385,30 @@ Proof.
 Lemma selsort_sorted : forall n al,
     length al = n -> sorted (selsort al n).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro n. induction n; intros.
+  (* 0 *) apply length_zero_iff_nil in H. inv H. auto.
+  (* S n *)
+  destruct al eqn:E.
+  (* nil *) discriminate.
+  (* n0 :: l *)
+  simpl in H.
+  apply eq_add_S in H.
+  assert (Hl__sorted: sorted (selsort l n))
+    by (apply IHn in H; assumption).
+  simpl. destruct (select n0 l) eqn:E0.
+  assert (Hl0__length: length l0 = n). {
+    apply select_rest_length in E0.
+    subst.
+    symmetry.
+    assumption.
+  }
+  assert (Hl0__sorted: sorted (selsort l0 n))
+    by (apply IHn in Hl0__length; assumption).
+  assert (Hn0__lealll0: n1 <=* l0)
+    by apply (select_smallest _ _ _ _ E0).
+  symmetry in Hl0__length.
+  apply cons_of_small_maintains_sort; assumption.
+Qed.
 
 (** [] *)
 
@@ -275,7 +419,9 @@ Proof.
 Lemma selection_sort_sorted : forall al,
     sorted (selection_sort al).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intro. unfold selection_sort.
+  apply (selsort_sorted (length al) al eq_refl).
+Qed.
 
 (** [] *)
 
@@ -286,8 +432,11 @@ Proof.
 Theorem selection_sort_is_correct :
   is_a_sorting_algorithm selection_sort.
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  unfold is_a_sorting_algorithm.
+  intro. split.
+  apply (selsort_perm (length al) al eq_refl).
+  apply selection_sort_sorted.
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced, optional (selection_sort_is_correct_multiset) *)
@@ -376,8 +525,20 @@ Check selsort'_equation.
 Lemma selsort'_perm : forall n l,
     length l = n -> Permutation l (selsort' l).
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  intro. induction n; intros.
+  (* 0 *) apply length_zero_iff_nil in H. subst. auto.
+  (* S n *)
+  destruct l; simpl in H; inv H.
+  rewrite selsort'_equation.
+  destruct (select n0 l) eqn:E.
+  apply eq_sym in E.
+  apply select_perm in E.
+  apply (Permutation_trans E).
+  constructor.
+  apply IHn.
+  apply Permutation_length in E.
+  inv E. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced, optional (selsort'_correct) *)

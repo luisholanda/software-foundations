@@ -261,6 +261,13 @@ Proof.
     (* j = S j - contradiction *)
     destruct j; inv H3.
   - (* x :: y :: l *)
+    destruct j; simpl in H1; inv H1.
+    (* j = 0 *)
+    lia.
+    (* j = S j *)
+    destruct i; simpl in H0; inv H0.
+    (* i = 0 *)
+Admitted.
 
 (** [] *)
 
@@ -270,7 +277,9 @@ Proof.
 (** Here, you can't do induction on the sortedness of the list,
     because [sorted'] is not an inductive predicate. But the proof
     is not hard. *)
-(* FILL IN HERE *) Admitted.
+  intros. induction al. constructor.
+Admitted.
+
 (** [] *)
 
 (* ################################################################# *)
