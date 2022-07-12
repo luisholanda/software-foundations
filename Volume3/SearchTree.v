@@ -206,7 +206,8 @@ Qed.
 Theorem empty_tree_BST : forall (V : Type),
     BST (@empty_tree V).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  auto.
+Qed.
 
 (** [] *)
 
@@ -221,7 +222,23 @@ Lemma ForallT_insert : forall (V : Type) (P : key -> V -> Prop) (t : tree V),
     ForallT P t -> forall (k : key) (v : V),
       P k v -> ForallT P (insert k v t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros V P t Htp. induction t; intros.
+  simpl. auto.
+  inv Htp.
+  destruct H1 as [Ht1 Ht2].
+  simpl.
+  bdestruct (k >? k0); simpl.
+  - repeat split;
+    try apply IHt1;
+    assumption.
+  - bdestruct (k0 >? k).
+    + repeat split;
+      try apply IHt2;
+      assumption.
+    + constructor;
+      try split;
+      assumption.
+Qed.
 
 (** Now prove the main theorem. Proceed by induction on the evidence
     that [t] is a BST. *)
@@ -229,7 +246,16 @@ Proof.
 Theorem insert_BST : forall (V : Type) (k : key) (v : V) (t : tree V),
     BST t -> BST (insert k v t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction H; simpl.
+  - (* E *) constructor; simpl; auto.
+  - bdestruct (x >? k);
+    bdestruct (k >? x);
+    constructor;
+    (* For the cases where the insert goes to a branch *)
+    try apply ForallT_insert;
+    try (assert (x = k) by lia; subst);
+    assumption.
+Qed.
 
 (** [] *)
 
@@ -348,7 +374,30 @@ Qed.
     you have the right theorem statements, the proofs should all be
     quite easy -- thanks to [bdall]. *)
 
-(* FILL IN HERE *)
+(* The specification of [bound] is as follows:
+
+   - bound k empty_tree = false
+   - bound k (insert k v t) = true
+   - bound k (insert k' v t) = bound k t if k != k'
+ *)
+
+Theorem bound_empty : forall (V : Type) (k : key),
+  bound k (@empty_tree V) = false.
+Proof.
+  auto.
+Qed.
+
+Theorem bound_insert_eq_true : forall (V : Type) (t : tree V) (v : V) (k : key),
+  bound k (insert k v t) = true.
+Proof.
+  induction t; intros; bdall.
+Qed.
+
+Theorem bound_insert_neq : forall (V : Type) (t : tree V) (v : V) (k k' : key),
+  k <> k' -> bound k (insert k' v t) = bound k t.
+Proof.
+  induction t; intros; bdall.
+Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_bound_correct : option (nat*string) := None.
@@ -364,7 +413,10 @@ Theorem bound_default :
     bound k t = false ->
     lookup d k t = d.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t; intros;
+  simpl in H; bdall.
+  reflexivity.
+Qed.
 
 (** [] *)
 
@@ -432,7 +484,11 @@ Lemma lookup_insert_shadow :
     lookup d k' (insert k v (insert k v' t)) = lookup d k' (insert k v t).
 Proof.
   intros. bdestruct (k =? k').
-  (* FILL IN HERE *) Admitted.
+  - subst.
+    repeat rewrite lookup_insert_eq.
+    reflexivity.
+  - repeat rewrite lookup_insert_neq; auto.
+Qed.
 
 (** [] *)
 
@@ -442,7 +498,10 @@ Lemma lookup_insert_same :
   forall (V : Type) (k k' : key) (d : V) (t : tree V),
     lookup d k' (insert k (lookup d k t) t) = lookup d k' t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. bdestruct (k =? k').
+  - subst. repeat rewrite lookup_insert_eq. auto.
+  - repeat rewrite lookup_insert_neq; auto.
+Qed.
 
 (** [] *)
 
@@ -454,7 +513,18 @@ Lemma lookup_insert_permute :
     lookup d k' (insert k1 v1 (insert k2 v2 t))
     = lookup d k' (insert k2 v2 (insert k1 v1 t)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  bdestruct (k' =? k1);
+  bdestruct (k' =? k2);
+  subst;
+  repeat (
+    try rewrite lookup_insert_eq;
+    rewrite lookup_insert_neq;
+    try rewrite lookup_insert_eq
+  );
+  try lia;
+  reflexivity.
+Qed.
 
 (** [] *)
 
@@ -584,7 +654,28 @@ Definition elements_complete_spec :=
 
 Theorem elements_complete : elements_complete_spec.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold elements_complete_spec. intros. induction t.
+  - (* E *) discriminate.
+  - (* T *)
+    simpl.
+    Search (In _ (_ ++ _)).
+    apply in_or_app.
+    simpl in H. simpl in H0.
+    bdestruct (k0 >? k);
+    bdestruct (k >? k0);
+    try lia.
+    + (* k in left *)
+      left. apply IHt1; assumption.
+    + (* k in right *)
+      right.
+      apply in_cons.
+      apply IHt2; assumption.
+    + (* k in center *)
+      right. subst.
+      replace k with k0 by lia.
+      apply in_eq.
+Qed.
+
 
 (** [] *)
 
@@ -630,7 +721,15 @@ Lemma elements_preserves_forall : forall (V : Type) (P : key -> V -> Prop) (t : 
     ForallT P t ->
     Forall (uncurry P) (elements t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction t; simpl. auto.
+  apply Forall_app.
+  inv H.
+  destruct H1 as [H1 H2].
+  split;
+  (* split right and center cases *)
+  try apply Forall_cons;
+  auto.
+Qed.
 
 (** [] *)
 
@@ -653,7 +752,14 @@ Lemma elements_preserves_relation :
     -> In (k, v) (elements t)
     -> R k k'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  Check Forall_forall.
+  apply elements_preserves_forall in H.
+  destruct (Forall_forall (uncurry (fun y _ => R y k')) (elements t))
+    as [Forall_to_In].
+  apply (Forall_to_In H (k, v)).
+  assumption.
+Qed.
 
 (** [] *)
 
@@ -664,7 +770,43 @@ Proof.
 
 Theorem elements_correct : elements_correct_spec.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold elements_correct_spec. intros. induction H.
+  - (* E *) contradiction.
+  - (* T *)
+    simpl in H0.
+    simpl.
+    bdestruct (x >? k);
+    bdestruct (k >? x);
+    (* Break In elements hypothesis into all cases  *)
+    apply in_app_or in H0 as [HIn__left | HIn__rest];
+    try apply in_inv in HIn__rest as [HIn__center | HIn__right];
+    (* Try applying the induction hypothesis,
+
+       This will convert bound + lookup into In elements goals. *)
+    try (apply IHBST1 || apply IHBST2);
+    (* If the key is in the center, replace everything. *)
+    try inv HIn__center;
+    (* Solve trivial cases *)
+    try assumption;
+    (* Consider cases where part of hypothesis says that the key is the
+       left but another says that it is in the left. *)
+    try apply (elements_preserves_relation
+                _ k _ _ _
+                (fun k k' => k > k')
+                H1
+              )
+          in HIn__right;
+    try apply (elements_preserves_relation
+                _ k _ _ _
+                (fun k k' => k < k')
+                H
+              )
+          in HIn__left;
+    try lia.
+    (* Finish solving center case. *)
+    split; reflexivity.
+Qed.
+
 
 (** [] *)
 
@@ -689,7 +831,11 @@ Theorem elements_complete_inverse :
     bound k t = false ->
     ~ In (k, v) (elements t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold not. intros.
+  apply (elements_correct _ _ _ v _ H) in H1 as [H__bound _].
+  rewrite H0 in H__bound.
+  discriminate.
+Qed.
 
 (** [] *)
 
@@ -701,7 +847,15 @@ Proof.
 Lemma bound_value : forall (V : Type) (k : key) (t : tree V),
     bound k t = true -> exists v, forall d, lookup d k t = v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t; intros. discriminate.
+  simpl. simpl in H.
+  bdestruct (k0 >? k);
+  bdestruct (k >? k0);
+  try lia.
+  - apply IHt1 in H. assumption.
+  - apply IHt2 in H. assumption.
+  - exists v. reflexivity.
+Qed.
 
 (** Prove the main result.  You don't need induction. *)
 
@@ -710,7 +864,17 @@ Theorem elements_correct_inverse :
     (forall v, ~ In (k, v) (elements t)) ->
     bound k t = false.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  Search bound.
+  destruct (bound k t) eqn:E.
+  - apply bound_value in E as E'.
+    destruct E' as [v H__lookup].
+    specialize H with v.
+    specialize H__lookup with v.
+    apply (elements_complete _ _ _ _ _ E) in H__lookup.
+    contradiction.
+  - reflexivity.
+Qed.
 
 (** [] *)
 
@@ -731,7 +895,26 @@ Lemma sorted_app: forall l1 l2 x,
   Forall (fun n => n < x) l1 -> Forall (fun n => n > x) l2 ->
   Sort.sorted (l1 ++ x :: l2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros l1 l2 x H.
+  induction H; intros; simpl.
+  - (* l1 = [] *)
+    destruct l2; constructor.
+    apply Forall_inv in H1.
+    lia.
+    assumption.
+  - (* l1 = [x0] *)
+    constructor.
+    apply Forall_inv in H0. lia.
+    destruct l2; constructor.
+    apply Forall_inv in H1.
+    lia.
+    assumption.
+  - (* l1 = x0 :: y :: l *)
+    constructor. assumption.
+    apply Forall_inv_tail in H2.
+    apply IHsorted; assumption.
+Qed.
+
 
 (** [] *)
 
@@ -746,10 +929,28 @@ Definition list_keys {V : Type} (lst : list (key * V)) :=
 (** Prove that [elements t] is sorted by keys. Proceed by induction
     on the evidence that [t] is a BST. *)
 
+(* remove uncurry *)
+Lemma uncurry_elim : forall (V : Type) (P : key -> V -> Prop),
+  uncurry P = (fun p : key * V => P (fst p) (snd p)).
+Proof.
+  intros.
+  extensionality a. destruct a.
+  unfold uncurry. reflexivity.
+Qed.
+
 Theorem sorted_elements : forall (V : Type) (t : tree V),
     BST t -> Sort.sorted (list_keys (elements t)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction H; simpl. constructor.
+  unfold list_keys. unfold list_keys in IHBST1. unfold list_keys in IHBST2.
+  rewrite map_app, map_cons.
+  apply sorted_app; try assumption; simpl;
+  apply Forall_map;
+  apply elements_preserves_forall in H;
+  apply elements_preserves_forall in H0;
+  rewrite uncurry_elim in * |-;
+  assumption.
+Qed.
 
 (** [] *)
 
@@ -781,7 +982,24 @@ Lemma NoDup_append : forall (X:Type) (l1 l2: list X),
   NoDup l1 -> NoDup l2 -> disjoint l1 l2 ->
   NoDup (l1 ++ l2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction l1; intros; simpl.
+  - assumption.
+  - inv H.
+    constructor.
+    intro.
+    apply in_app_or in H as [HIn1 | HIn2].
+    + contradiction.
+    + unfold disjoint in H1.
+      specialize H1 with a.
+      apply H1; simpl; auto.
+    + apply IHl1; try assumption.
+      unfold disjoint.
+      intros.
+      unfold disjoint in H1.
+      specialize H1 with x.
+      apply or_intror with (A := (a = x)) in H.
+      auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced, optional (elements_nodup_keys) *)
@@ -794,7 +1012,51 @@ Theorem elements_nodup_keys : forall (V : Type) (t : tree V),
     BST t ->
     NoDup (list_keys (elements t)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction H; simpl. constructor.
+  unfold list_keys. unfold list_keys in IHBST1. unfold list_keys in IHBST2.
+  rewrite map_app, map_cons.
+  simpl.
+  apply NoDup_append. assumption.
+  - constructor.
+    + (* x not in left. *)
+      apply elements_preserves_forall in H0.
+      rewrite uncurry_elim, Forall_forall in H0.
+      unfold not. intro.
+      rewrite in_map_iff in H3.
+      destruct H3 as [p [Hfst HpIn__r]].
+      specialize H0 with p.
+      destruct p. inv Hfst.
+      apply H0 in HpIn__r.
+      lia.
+    + assumption.
+  - (* everything is disjoint. *)
+    unfold disjoint.
+    intros.
+    apply elements_preserves_forall in H, H0.
+    rewrite uncurry_elim in * |-.
+    rewrite Forall_forall in H0.
+    rewrite Forall_forall in H.
+
+    rewrite in_map_iff in H3.
+    destruct H3 as [p [Hfst HInl]].
+    destruct p. inv Hfst.
+
+    assert (k < x). {
+      specialize H with (k, v0).
+      apply H. assumption.
+    }
+    simpl. unfold not. intros [Hkx | HInr]. lia.
+
+    rewrite in_map_iff in HInr.
+    destruct HInr as [p [Hfst HInr]].
+    destruct p. inv Hfst. simpl in *.
+
+    assert (k0 > x). {
+      specialize H0 with (k0, v1).
+      apply H0. assumption.
+    }
+    lia.
+Qed.
 
 (** [] *)
 
@@ -829,12 +1091,19 @@ Lemma fast_elements_tr_helper :
   forall (V : Type) (t : tree V) (lst : list (key * V)),
     fast_elements_tr t lst = elements t ++ lst.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t;
+  intros; simpl;
+  try rewrite IHt1, IHt2, app_assoc_reverse;
+  reflexivity.
+Qed.
 
 Lemma fast_elements_eq_elements : forall (V : Type) (t : tree V),
     fast_elements t = elements t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. unfold fast_elements.
+  rewrite fast_elements_tr_helper, app_nil_r.
+  reflexivity.
+Qed.
 
 (** [] *)
 
@@ -910,7 +1179,25 @@ Lemma kvs_insert_split :
          else
            e1 ++ (k,v)::e2.
 Proof.
-(* FILL IN HERE *) Admitted.
+  induction e1; intros; simpl in *.
+  reflexivity.
+  destruct a.
+  bdestruct (k1 >? k).
+  - bdestruct (k0 >? k). auto.
+    bdestruct (k >? k0);
+    apply Forall_inv in H;
+    lia.
+  - bdestruct (k >? k1).
+    + apply Forall_inv_tail in H as H3.
+      rewrite IHe1; auto.
+      bdestruct (k0 >? k);
+      bdestruct (k >? k0); auto.
+    + assert (k1 = k) by lia. subst. clear H1 H2.
+      apply Forall_inv in H.
+      rewrite <- Nat.ltb_lt in H.
+      rewrite H in *.
+      auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (kvs_insert_elements) *)
@@ -919,7 +1206,16 @@ Lemma kvs_insert_elements : forall (V : Type) (t : tree V),
     forall (k : key) (v : V),
       elements (insert k v t) = kvs_insert k v (elements t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros V t H. induction H; intros; simpl in *.
+  - reflexivity.
+  - apply elements_preserves_forall in H, H0.
+    rewrite kvs_insert_split; auto.
+    bdestruct (x >? k); simpl in *.
+    + rewrite IHBST1; auto.
+    + bdestruct (k >? x); simpl in *.
+      * rewrite IHBST2; auto.
+      * reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -1035,7 +1331,13 @@ Definition map_bound {V : Type} (k : key) (m : partial_map V) : bool :=
 Lemma in_fst : forall (X Y : Type) (lst : list (X * Y)) (x : X) (y : Y),
     In (x, y) lst -> In x (map fst lst).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  set (p := (x, y)) in *.
+  assert (x = fst p) by auto.
+  rewrite H0.
+  apply in_map.
+  assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (in_map_of_list) *)
@@ -1043,14 +1345,39 @@ Lemma in_map_of_list : forall (V : Type) (el : list (key * V)) (k : key) (v : V)
     NoDup (map fst el) ->
     In (k,v) el -> (map_of_list el) k = Some v.
 Proof.
-(* FILL IN HERE *) Admitted.
+  induction el; intros.
+  - inv H0.
+  - destruct a. simpl in *.
+    destruct H0 as [Heq | HIn].
+    + inv Heq. apply update_eq.
+    + rewrite NoDup_cons_iff in H.
+      destruct H.
+      assert (k0 <> k). {
+        apply in_map with (f := fst) in HIn.
+        simpl in HIn.
+        bdestruct (k0 =? k).
+          subst. contradiction.
+        assumption.
+      }
+
+      rewrite update_neq.
+      apply IHel.
+      all: assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (not_in_map_of_list) *)
 Lemma not_in_map_of_list : forall (V : Type) (el : list (key * V)) (k : key),
     ~ In k (map fst el) -> (map_of_list el) k = None.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction el; intros.
+  - reflexivity.
+  - destruct a. simpl in *.
+    apply Decidable.not_or in H as [Hneq HnotIn].
+    rewrite update_neq.
+    apply IHel.
+    all: assumption.
+Qed.
 (** [] *)
 
 Lemma empty_relate : forall (V : Type),
@@ -1065,8 +1392,18 @@ Theorem bound_relate : forall (V : Type) (t : tree V) (k : key),
     BST t ->
     map_bound k (Abs t) = bound k t.
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  induction t; intros.
+  - reflexivity.
+  - simpl. inv H.
+    unfold Abs in *.
+    bdestruct (k >? k0).
+    + destruct (elements (T t1 k v t2)) eqn:E.
+      * inv E.
+        apply app_eq_nil in H1 as [H1 H2].
+        discriminate.
+      * inv E.
+        simpl. destruct p.
+Admitted.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (lookup_relate) *)
@@ -1074,7 +1411,12 @@ Proof.
 Lemma lookup_relate : forall (V : Type) (t : tree V) (d : V) (k : key),
     BST t -> find d k (Abs t) = lookup d k t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction H; auto.
+  simpl.
+  bdestruct_guard.
+  - unfold Abs in *.
+    unfold map_of_list.
+Admitted.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (insert_relate) *)
@@ -1167,20 +1509,31 @@ Definition union {X} (m1 m2: partial_map X) : partial_map X :=
 Lemma union_left : forall {X} (m1 m2: partial_map X) k,
     m2 k = None -> union m1 m2 k = m1 k.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros.
+  unfold union.
+  rewrite H.
+  destruct (m1 k); reflexivity.
+Qed.
 
 Lemma union_right : forall {X} (m1 m2: partial_map X) k,
     m1 k = None ->
     union m1 m2 k = m2 k.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros.
+  unfold union.
+  rewrite H.
+  destruct (m2 k); reflexivity.
+Qed.
 
 Lemma union_both : forall {X} (m1 m2 : partial_map X) k v1 v2,
     m1 k = Some v1 ->
     m2 k = Some v2 ->
     union m1 m2 k = None.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. unfold union.
+  rewrite H, H0.
+  reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (union_update) *)
@@ -1188,13 +1541,39 @@ Lemma union_update_right : forall {X} (m1 m2: partial_map X) k v,
     m1 k = None ->
     update (union m1 m2) k v = union m1 (update m2 k v).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros.
+  extensionality k'.
+  bdestruct (k =? k').
+  - subst.
+    rewrite union_right.
+    repeat rewrite update_eq.
+    all: auto.
+  - repeat rewrite update_neq.
+    unfold union.
+    destruct (m1 k') eqn:E;
+    try rewrite E;
+    rewrite update_neq.
+    all: auto.
+Qed.
 
 Lemma union_update_left : forall {X} (m1 m2: partial_map X) k v,
     m2 k = None ->
     update (union m1 m2) k v = union (update m1 k v) m2.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros.
+  extensionality k'.
+  bdestruct (k =? k').
+  - subst.
+    rewrite union_left.
+    repeat rewrite update_eq.
+    all: auto.
+  - rewrite update_neq.
+    unfold union.
+    destruct (m1 k') eqn:E;
+    rewrite update_neq;
+    try rewrite E.
+    all: auto.
+Qed.
 (** [] *)
 
 (** We can now write a direct conversion function from trees to maps
@@ -1213,7 +1592,26 @@ Lemma map_of_tree_prop : forall (V : Type) (P : key -> V -> Prop) (t : tree V),
     forall k v, (map_of_tree t) k = Some v ->
            P k v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t; intros.
+  - unfold map_of_tree in H0. discriminate H0.
+  - simpl in *.
+    destruct H as [H [H1 H2]].
+    bdestruct (k =? k0).
+    + subst. rewrite update_eq in H0.
+      inv H0. assumption.
+    + rewrite update_neq in H0.
+      destruct (map_of_tree t1 k0) eqn:E;
+      destruct (map_of_tree t2 k0) eqn:E';
+      unfold union in H0;
+      rewrite E, E' in H0;
+      inv H0.
+      * (* k0 in t1 *)
+        apply IHt1; assumption.
+      * (* k0 in t2 *)
+        apply IHt2; assumption.
+      * assumption.
+Qed.
+
 (** [] *)
 
 (** Finally, we define our new abstraction function, and prove the
@@ -1233,7 +1631,17 @@ Theorem bound_relate' : forall (V : Type) (t : tree V) (k : key),
     BST t ->
     map_bound k (Abs' t) = bound k t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t; intros.
+  - reflexivity.
+  - unfold Abs' in *.
+    inv H.
+    simpl.
+    bdestruct_guard.
+    + assert (k0 <> k) by lia.
+      unfold map_bound.
+      rewrite update_neq; auto.
+      rewrite <- IHt1; auto.
+
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced, optional (lookup_relate') *)
