@@ -195,26 +195,33 @@ Module ListsTable (VT : ValType) <: Table.
 
   Definition empty : table := [].
 
-  Fixpoint get (k : key) (t : table) : V
-    (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+  Fixpoint get (k : key) (t : table) : V :=
+    match t with
+    | [] => default
+    | ((k', v) :: t') => if k' =? k then v else get k t'
+    end.
 
-  Definition set (k : key) (v : V) (t : table) : table
-    (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+  Definition set (k : key) (v : V) (t : table) : table := (k, v) :: t.
 
   Theorem get_empty_default: forall (k : key),
       get k empty = default.
   Proof.
-    (* FILL IN HERE *) Admitted.
+    reflexivity.
+  Qed.
 
   Theorem get_set_same: forall (k : key) (v : V) (t : table),
       get k (set k v t) = v.
   Proof.
-    (* FILL IN HERE *) Admitted.
+    induction t; simpl; rewrite Nat.eqb_refl; reflexivity.
+  Qed.
 
   Theorem get_set_other: forall (k k' : key) (v : V) (t : table),
       k <> k' -> get k' (set k v t) = get k' t.
   Proof.
-    (* FILL IN HERE *) Admitted.
+    intros. simpl.
+    rewrite <- Nat.eqb_neq in H.
+    rewrite H. reflexivity.
+  Qed.
 
 End ListsTable.
 
@@ -228,15 +235,18 @@ Module StringListsTableExamples.
 
   Example ex1 : get 0 empty = "".
   Proof.
-    (* FILL IN HERE *) Admitted.
+    reflexivity.
+  Qed.
 
   Example ex2 : get 0 (set 0 "A" empty) = "A".
   Proof.
-    (* FILL IN HERE *) Admitted.
+    reflexivity.
+  Qed.
 
   Example ex3 : get 1 (set 0 "A" empty) = "".
   Proof.
-    (* FILL IN HERE *) Admitted.
+    reflexivity.
+  Qed.
 
 End StringListsTableExamples.
 
@@ -677,7 +687,9 @@ Print SimpleStringTable3.default.
 (** Putting sharing constraints to use, let's expose [V] and [default]
     in our implementation of tree-based tables. *)
 
-Module TreeETableEncapsulated (VT : ValType) : (ETable with Definition V := VT.V with Definition default := VT.default).
+Module TreeETableEncapsulated (VT : ValType) : (ETable
+                                                with Definition V := VT.V
+                                                with Definition default := VT.default).
 
   Include TreeTable VT.
 

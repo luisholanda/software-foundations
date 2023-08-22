@@ -562,13 +562,18 @@ Lemma insert_same_equality_breaks :
   exists (V : Type) (d : V) (t : tree V) (k : key),
       insert k (lookup d k t) t <> t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists nat, 0, E, 1. unfold not. intros. inversion H.
+Qed.
+
 
 Lemma insert_permute_equality_breaks :
   exists (V : Type) (v1 v2 : V) (k1 k2 : key) (t : tree V),
     k1 <> k2 /\ insert k1 v1 (insert k2 v2 t) <> insert k2 v2 (insert k1 v1 t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists nat, 0, 1, 0, 1, E. split.
+  - lia.
+  - unfold not. intros. inversion H.
+Qed.
 
 (** [] *)
 
@@ -1641,6 +1646,7 @@ Proof.
       unfold map_bound.
       rewrite update_neq; auto.
       rewrite <- IHt1; auto.
+Abort.
 
 (** [] *)
 
